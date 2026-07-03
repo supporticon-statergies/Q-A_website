@@ -7,15 +7,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  .admin-wrap { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
-  th, td { padding: 16px; text-align: left; border-bottom: 1px solid var(--border); }
-  th { background: var(--surface-raised); font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); text-transform: uppercase; }
+  .admin-wrap { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+  .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .download-btn { padding: 10px 20px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-mono); font-size: 13px; cursor: pointer; text-decoration: none; transition: background 0.2s; }
+  .download-btn:hover { background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+  th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+  th { background: var(--surface-raised); font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
   tr:last-child td { border-bottom: none; }
-  .score { font-weight: 600; color: var(--p5); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .score { font-weight: 600; color: var(--p5); font-family: var(--font-mono); }
   .areas { font-size: 13px; color: var(--text-muted); }
-  .areas ul { margin-left: 16px; margin-top: 4px; }
-  .no-data { text-align: center; padding: 40px; color: var(--text-faint); }
+  .areas ul { margin: 4px 0 0 16px; padding: 0; }
+  .linkedin-link { color: var(--p5); text-decoration: none; font-size: 13px; }
+  .linkedin-link:hover { text-decoration: underline; }
+  .no-data { text-align: center; padding: 60px 20px; color: var(--text-faint); font-family: var(--font-mono); }
+  .count-badge { font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); background: var(--surface-raised); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -28,25 +35,65 @@
 </div>
 
 <div class="admin-wrap">
-  <h1>Quiz Attendees</h1>
-  <p style="color: var(--text-muted); margin-bottom: 20px;">List of users who have completed the Support Readiness Scan.</p>
-  
+  <div class="admin-header">
+    <div>
+      <h1 style="margin:0 0 4px;">Quiz Attendees</h1>
+      <p style="color: var(--text-muted); margin: 0;" id="subCount">Loading submissions…</p>
+    </div>
+    <a id="downloadLink" class="download-btn" style="display:none;" download="submissions.xlsx">⬇ Download Excel</a>
+  </div>
+
   <div id="tableContainer">
-    <div class="no-data">Loading...</div>
+    <div class="no-data">Loading…</div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
+const GITHUB_TOKEN = "YOUR_GITHUB_PAT";       // Replace: GitHub Personal Access Token
+const GITHUB_OWNER = "YOUR_GITHUB_USERNAME";  // Replace: your GitHub username
+const GITHUB_REPO  = "YOUR_REPO_NAME";        // Replace: your repository name
+const FILE_PATH    = "data/submissions.xlsx";
+
 async function loadAttendees() {
   const container = document.getElementById('tableContainer');
+  const subCount  = document.getElementById('subCount');
+
   try {
-    const API_URL = "https://zcyuaidjb6.execute-api.us-east-1.amazonaws.com";
-    const res = await fetch(`${API_URL}/attendees`);
-    if (!res.ok) throw new Error('Failed to fetch data');
-    const data = await res.json();
-    
+    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILE_PATH}`;
+    const res = await fetch(apiUrl, {
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github.v3+json"
+      }
+    });
+
+    if (res.status === 404) {
+      container.innerHTML = '<div class="no-data">No submissions yet — the Excel file will be created on first submission.</div>';
+      subCount.textContent = '0 submissions';
+      return;
+    }
+
+    if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+
+    const file  = await res.json();
+    const raw   = atob(file.content.replace(/\n/g, ""));
+    const bytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+
+    const wb   = XLSX.read(bytes, { type: "array" });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws);
+
+    subCount.textContent = `${data.length} submission${data.length !== 1 ? 's' : ''}`;
+
+    // Download button — direct raw link
+    const dlLink = document.getElementById('downloadLink');
+    dlLink.href = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/${FILE_PATH}`;
+    dlLink.style.display = 'inline-block';
+
     if (data.length === 0) {
-      container.innerHTML = '<div class="no-data">No attendees found.</div>';
+      container.innerHTML = '<div class="no-data">No submissions found.</div>';
       return;
     }
 
@@ -54,9 +101,12 @@ async function loadAttendees() {
       <table>
         <thead>
           <tr>
+            <th>#</th>
             <th>Date</th>
             <th>Name</th>
             <th>Email</th>
+            <th>Phone</th>
+            <th>LinkedIn</th>
             <th>Company</th>
             <th>Score</th>
             <th>Areas to Improve</th>
@@ -65,34 +115,35 @@ async function loadAttendees() {
         <tbody>
     `;
 
-    data.forEach(row => {
-      const date = new Date(row.createdAt * 1000).toLocaleString();
-      const score = Math.round(row.overallScore) + '%';
-      
-      let areasHtml = '';
-      if (row.areasToImprove && row.areasToImprove.length > 0) {
-        areasHtml =
-          '<ul>' +
-          row.areasToImprove.map(a => `<li>${a}</li>`).join('') +
-          '</ul>';
-      }
+    data.forEach((row, i) => {
+      const linkedInHtml = row['LinkedIn']
+        ? `<a class="linkedin-link" href="${row['LinkedIn']}" target="_blank">View ↗</a>`
+        : '<span style="color:var(--text-faint)">—</span>';
+
+      const areas = row['Areas to Improve']
+        ? '<ul>' + row['Areas to Improve'].split(', ').map(a => `<li>${a}</li>`).join('') + '</ul>'
+        : '<span style="color:var(--text-faint)">—</span>';
 
       html += `
         <tr>
-          <td style="font-size: 13px; color: var(--text-faint);">${date}</td>
-          <td style="font-weight: 500;">${row.name}</td>
-          <td>${row.userEmail}</td>
-          <td>${row.company || '-'}</td>
-          <td class="score">${score}</td>
-          <td class="areas">${areasHtml}</td>
+          <td style="color:var(--text-faint);font-family:var(--font-mono);font-size:12px;">${i + 1}</td>
+          <td style="font-size:13px;color:var(--text-faint);white-space:nowrap;">${row['Date'] || '—'}</td>
+          <td style="font-weight:500;">${row['Name'] || '—'}</td>
+          <td>${row['Email'] || '—'}</td>
+          <td style="white-space:nowrap;">${row['Phone'] || '<span style="color:var(--text-faint)">—</span>'}</td>
+          <td>${linkedInHtml}</td>
+          <td>${row['Company'] || '<span style="color:var(--text-faint)">—</span>'}</td>
+          <td class="score">${row['Score (%)'] || 0}%</td>
+          <td class="areas">${areas}</td>
         </tr>
       `;
     });
 
     html += `</tbody></table>`;
     container.innerHTML = html;
+
   } catch (err) {
-    container.innerHTML = '<div class="no-data" style="color: #ff6b6b;">Error loading data. Make sure the backend is running.</div>';
+    container.innerHTML = `<div class="no-data" style="color:#ff6b6b;">Error: ${err.message}</div>`;
     console.error(err);
   }
 }

@@ -1,4 +1,2 @@
-node_modules/
-.env
-quiz.db
 .DS_Store
+Thumbs.db

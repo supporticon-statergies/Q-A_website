@@ -7,7 +7,7 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table("Q-A_website")
 
 headers = {
-    "Access-Control-Allow-Origin": "https://supporticon-statergies.github.io/Q-A_website/",
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Content-Type": "application/json"
@@ -124,12 +124,10 @@ def attendees():
 
     except Exception as e:
 
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Access-Control-Allow-Origin": "*"
-            },
-            "body": json.dumps({
-                "error": str(e)
-            })
-        }
+      return {
+    "statusCode": 201,
+    "headers": headers,
+    "body": json.dumps({
+        "message": "Saved Successfully"
+    })
+}

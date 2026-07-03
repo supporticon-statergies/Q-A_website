@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaaS Support Readiness Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <img src="Icon.png" alt="Company Logo" class="topbar-logo" style="height: 64px; width: auto; object-fit: contain; margin-right: 20px;">
+    <span class="topbar-title">Support Readiness Scan</span>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-count" id="progressCount">0 / 20</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow"><span class="pulse-dot"></span> Diagnostic · 20 signals</div>
+    <h1>Is your support ready to scale — or one bad week from breaking?</h1>
+    <p>Answer 20 quick questions about your SaaS support operations. Each answer is scored — the highest-readiness option earns full marks, the rest score down based on how close they get. At the end you'll get an overall readiness score.</p>
+    <button class="start-btn" id="startBtn">Start the scan ↓</button>
+    <div class="hero-meta">
+      <div><span class="num">20</span><span class="label">Questions</span></div>
+    </div>
+  </section>
+
+  <div id="quizSection" class="quiz-section">
+    <div id="quizForm"></div>
+
+    <div class="submit-zone" id="submitZone">
+      <div class="submit-hint" id="submitHint">answer all 20 questions to unlock your score</div>
+      <div id="userDetailsForm" class="user-details-form" style="display: none;">
+        <h3>Almost there! Tell us who you are to see your results.</h3>
+        <div class="form-group">
+          <label for="userName">Name</label>
+          <input type="text" id="userName" placeholder="Your Name" required>
+        </div>
+        <div class="form-group">
+          <label for="userEmail">Work Email</label>
+          <input type="email" id="userEmail" placeholder="you@company.com" required>
+        </div>
+        <div class="form-group">
+          <label for="userCompany">Company Name</label>
+          <input type="text" id="userCompany" placeholder="Company Name">
+        </div>
+        <button class="submit-btn" id="submitBtn">Generate my readiness score</button>
+        <div class="error-msg" id="submitError" style="color: #ff6b6b; margin-top: 10px; display: none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <section id="results">
+    <div class="results-hero">
+      <div class="eyebrow"><span class="pulse-dot"></span> Scan complete</div>
+      <div class="score-gauge">
+        <div class="score-num" id="overallScore">0%</div>
+        <div class="score-label">Overall readiness score</div>
+      </div>
+      <div class="score-band" id="scoreBand"></div>
+    </div>
+
+    <div class="radar-wrap" id="radarWrap"></div>
+
+    <div class="pillar-bars" id="pillarBars"></div>
+
+    <div class="focus-section">
+      <h3>What to improve</h3>
+      <div class="sub">Guidance drawn from SaaS support best practices</div>
+      <div id="focusList"></div>
+    </div>
+
+    <button class="restart-btn" id="restartBtn">Restart the scan</button>
+  </section>
+
+</div>
+
+<script>
+const PILLARS = [
+  {
+    id: 'pillar1', color: 'p1',
+    badge: 'Pillar 1', title: 'Capacity & volume readiness',
+    sub: 'Can your current setup absorb a 10x spike without breaking?',
+    questions: [
+      {
+        text: 'How do you currently receive customer queries?', tag: 'Infra',
+        options: [
+          { t: 'Dedicated ticketing/helpdesk system with routing', s: 1 },
+          { t: 'Shared inbox (email) monitored by the team', s: 0.75 },
+          { t: 'WhatsApp or phone calls, handled ad hoc', s: 0.50 },
+          { t: 'No fixed channel — customers reach out however they can', s: 0.25 },
+        ]
+      },
+      {
+        text: 'What happens when 5 customers contact you simultaneously?', tag: 'Risk',
+        options: [
+          { t: 'System queues and assigns them automatically, all handled in time', s: 1 },
+          { t: 'Team splits up manually, but everyone gets attended to', s: 0.75 },
+          { t: 'Some wait a long time while others get quick replies', s: 0.50 },
+          { t: 'It becomes chaos — some queries get missed entirely', s: 0.25 },
+        ]
+      },
+      {
+        text: "What's your average first response time right now?", tag: 'Metric',
+        options: [
+          { t: 'Under 1 hour', s: 1 },
+          { t: '1–4 hours', s: 0.75 },
+          { t: '4–24 hours', s: 0.50 },
+          { t: "More than a day, or we don't track it", s: 0.25 },
+        ]
+      },
+      {
+        text: 'Do you have a ticket or case management system in place?', tag: 'System',
+        options: [
+          { t: 'Yes, fully set up with automation and routing', s: 1 },
+          { t: 'Yes, but used inconsistently', s: 0.75 },
+          { t: 'We track things in a spreadsheet or shared doc', s: 0.50 },
+          { t: 'No system — we rely on memory and chat history', s: 0.25 },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'pillar2', color: 'p2',
+    badge: 'Pillar 2', title: 'Team & knowledge readiness',
+    sub: 'Is support knowledge locked inside your head — or documented and scalable?',
+    questions: [
+      {
+        text: 'How long does it take to train a new support person?', tag: 'Scale',
+        options: [
+          { t: 'Under a week, with structured onboarding docs', s: 1 },
+          { t: '2–3 weeks, with some shadowing', s: 0.75 },
+          { t: 'A month or more, mostly learning on the job', s: 0.50 },
+          { t: "We've never trained anyone else — only the founder handles it", s: 0.25 },
+        ]
+      },
+      {
+        text: 'Do you have an internal knowledge base or SOPs for support?', tag: 'Docs',
+        options: [
+          { t: 'Yes, documented and kept up to date', s: 1 },
+          { t: 'Yes, but outdated or scattered across docs', s: 0.75 },
+          { t: 'Informal notes exist, but nothing structured', s: 0.50 },
+          { t: 'No documentation exists', s: 0.25 },
+        ]
+      },
+      {
+        text: 'Who handles support when the founder is unavailable?', tag: 'Risk',
+        options: [
+          { t: 'A trained support team follows documented processes', s: 1 },
+          { t: 'A co-founder or senior team member fills in', s: 0.75 },
+          { t: "Support pauses until the founder is back", s: 0.50 },
+          { t: "No one — customers just don't get a response", s: 0.25 },
+        ]
+      },
+      {
+        text: 'Are support responses consistent across team members?', tag: 'Quality',
+        options: [
+          { t: 'Yes, tone and quality are standardized', s: 1 },
+          { t: 'Mostly, with occasional variation', s: 0.75 },
+          { t: 'It varies a lot depending on who answers', s: 0.50 },
+          { t: "There's no consistency — every reply feels different", s: 0.25 },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'pillar3', color: 'p3',
+    badge: 'Pillar 3', title: 'Customer insight & churn signals',
+    sub: 'Are you extracting intelligence from support — or just closing tickets?',
+    questions: [
+      {
+        text: 'Do you know your top 3 customer complaints this month?', tag: 'Insight',
+        options: [
+          { t: 'Yes, tracked and reviewed regularly', s: 1 },
+          { t: 'I have a rough idea from memory', s: 0.75 },
+          { t: 'Not specifically, but I sense a general pattern', s: 0.50 },
+          { t: "No idea — we don't track complaints", s: 0.25 },
+        ]
+      },
+      {
+        text: 'Do you track why customers cancel or go silent?', tag: 'Churn',
+        options: [
+          { t: 'Yes, we log and analyze churn reasons', s: 1 },
+          { t: "We ask sometimes, but don't record it systematically", s: 0.75 },
+          { t: 'We only notice churn after it happens', s: 0.50 },
+          { t: "We don't track this at all", s: 0.25 },
+        ]
+      },
+      {
+        text: 'Does your product team receive support insights weekly?', tag: 'Feedback',
+        options: [
+          { t: 'Yes, a structured weekly summary is shared', s: 1 },
+          { t: 'Occasionally, when something important comes up', s: 0.75 },
+          { t: 'Only if someone happens to mention it', s: 0.50 },
+          { t: 'Support and product are completely disconnected', s: 0.25 },
+        ]
+      },
+      {
+        text: 'How many feature requests came through support last month?', tag: 'Product',
+        options: [
+          { t: 'We track and prioritize them into the roadmap', s: 1 },
+          { t: 'We have a rough count but no clear process', s: 0.75 },
+          { t: 'We remember a few, but nothing formal', s: 0.50 },
+          { t: 'No idea — feature requests go unrecorded', s: 0.25 },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'pillar4', color: 'p4',
+    badge: 'Pillar 4', title: 'Customer experience quality',
+    sub: 'Is your support experience building loyalty — or quietly eroding it?',
+    questions: [
+      {
+        text: 'Do you measure CSAT or NPS for support interactions?', tag: 'Metric',
+        options: [
+          { t: 'Yes, tracked consistently after every interaction', s: 1 },
+          { t: 'Yes, but only occasionally or for select customers', s: 0.75 },
+          { t: 'We rely on gut feeling instead of measurement', s: 0.50 },
+          { t: "We've never measured this", s: 0.25 },
+        ]
+      },
+      {
+        text: 'Do customers receive proactive updates on open issues?', tag: 'CX',
+        options: [
+          { t: 'Yes, automated or manual updates are standard', s: 1 },
+          { t: 'Sometimes, if the team remembers to follow up', s: 0.75 },
+          { t: 'Only when the customer asks for an update', s: 0.50 },
+          { t: 'No updates — customers are left waiting', s: 0.25 },
+        ]
+      },
+      {
+        text: 'Is your support tone consistent with your brand voice?', tag: 'Brand',
+        options: [
+          { t: "Yes, there's a defined tone guide the team follows", s: 1 },
+          { t: "Mostly, though it depends on who's replying", s: 0.75 },
+          { t: "We haven't thought about it much", s: 0.50 },
+          { t: 'No — support and brand feel disconnected', s: 0.25 },
+        ]
+      },
+      {
+        text: 'Have you ever lost a customer due to a support experience?', tag: 'Churn',
+        options: [
+          { t: 'No, and we actively monitor for this risk', s: 1 },
+          { t: "Not that we know of, but we don't track it closely", s: 0.75 },
+          { t: "Yes, at least once that we're aware of", s: 0.50 },
+          { t: "Yes, and it's happened more than once", s: 0.25 },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'pillar5', color: 'p5',
+    badge: 'Pillar 5', title: 'Scale readiness & AI leverage',
+    sub: 'Is your support model ready for growth — or will it collapse under it?',
+    questions: [
+      {
+        text: 'What is your support cost per ticket today?', tag: 'Cost',
+        options: [
+          { t: 'We know the number and actively optimize it', s: 1 },
+          { t: 'We have a rough estimate', s: 0.75 },
+          { t: "We've never calculated it", s: 0.50 },
+          { t: "Support cost isn't tracked or budgeted at all", s: 0.25 },
+        ]
+      },
+      {
+        text: 'If customers 10x, does your support cost 10x too?', tag: 'Scale',
+        options: [
+          { t: 'No — our systems and automation scale sub-linearly', s: 1 },
+          { t: "Partially — some parts scale, others don't", s: 0.75 },
+          { t: 'Yes, it would scale roughly linearly with headcount', s: 0.50 },
+          { t: "It would completely break — we'd have to stop growth", s: 0.25 },
+        ]
+      },
+      {
+        text: 'Are you using automation for any repetitive support queries?', tag: 'AI',
+        options: [
+          { t: 'Yes, extensively — automation/AI handles common queries', s: 1 },
+          { t: 'Yes, for a few basic cases like FAQs', s: 0.75 },
+          { t: "We've considered it but haven't implemented anything", s: 0.50 },
+          { t: 'No automation at all — every query is handled manually', s: 0.25 },
+        ]
+      },
+      {
+        text: 'Do you have SLAs defined — even informally?', tag: 'Ops',
+        options: [
+          { t: 'Yes, formal SLAs are defined and tracked', s: 1 },
+          { t: 'Yes, informal targets exist and are mostly followed', s: 0.75 },
+          { t: 'We have a vague sense of expected response times', s: 0.50 },
+          { t: 'No SLAs — response times are unpredictable', s: 0.25 },
+        ]
+      },
+    ]
+  },
+];
+
+const COLOR_HEX = { p1:'#8B85F2', p2:'#46B897', p3:'#E2673E', p4:'#E8B94A', p5:'#5B93E0' };
+const COLOR_BG  = { p1:'rgba(139,133,242,0.10)', p2:'rgba(70,184,151,0.10)', p3:'rgba(226,103,62,0.10)', p4:'rgba(232,185,74,0.10)', p5:'rgba(91,147,224,0.10)' };
+
+
+
+// Guidance mapped from the "10 customer support best practices for SaaS founders" —
+// two source points matched to each pillar based on subject fit.
+const PILLAR_GUIDANCE = {
+  pillar1: [
+    { h: 'Response time is your brand promise', t: 'Customers rarely expect an instant fix — they expect acknowledgement. A reply within an hour, even just confirming the query was received, meaningfully lowers churn risk. Silence, not delay, is what actually pushes people away.' },
+    { h: 'Build self-service before you need it', t: 'A knowledge base, FAQ page, and onboarding content set up early can absorb a large share of tickets automatically as volume grows — capacity you gain without adding headcount.' },
+  ],
+  pillar2: [
+    { h: "Don't let knowledge live in one person's head", t: 'Document every resolution starting from the first 50 tickets. Support that depends entirely on one person, usually the founder, is not a system — it is a single point of failure waiting to happen.' },
+    { h: 'Define L1, L2, and escalation from day one', t: 'Even with just two people, decide upfront what gets handled directly (FAQs, how-to, billing) versus escalated. Teams that set this structure early scale without ever having to scramble later.' },
+  ],
+  pillar3: [
+    { h: 'Support is your best product research lab', t: 'Reading a sample of tickets every week surfaces more real product gaps than a quarterly survey ever will. Support is the closest a founder gets to unfiltered customer truth.' },
+    { h: 'Watch reopens and repeat contacts, not just CSAT', t: 'A customer who contacts you three times for the same issue is a churn risk even if they rate the interaction well. Repeat-contact rate is a more honest signal than a satisfaction score.' },
+  ],
+  pillar4: [
+    { h: 'Proactive support beats reactive support', t: "Telling customers about an issue before they notice it, e.g. during an outage, turns a frustrating moment into a trust-building one. It's also cheaper than handling the reactive version at scale." },
+    { h: 'Tone is a retention lever', t: 'Customers forgive bugs far more easily than they forgive feeling like a ticket number. Defining a support voice, and training the team on it, has a measurable effect on who stays.' },
+  ],
+  pillar5: [
+    { h: 'Your SLA is a sales asset, not just an ops document', t: 'Enterprise buyers often check the support SLA before they check pricing. Even a simple published commitment, like a 4-hour business-day response, signals maturity and closes deals a vague promise loses.' },
+    { h: 'AI multiplies support, it does not replace it', t: "The useful question isn't whether to add AI — it's which share of predictable, repetitive tickets can be automated so the team scales without headcount scaling 1:1 alongside it." },
+  ],
+};
+
+function guidanceStatus(pct){
+  if(pct >= 80) return { cls: 'status-strength', label: 'Strength' };
+  if(pct >= 50) return { cls: 'status-watch', label: 'Watch' };
+  return { cls: 'status-focus', label: 'Focus area' };
+}
+
+const TOTAL_QUESTIONS = PILLARS.reduce((n,p)=>n+p.questions.length,0);
+const answers = {}; // key: "pillarId-qIndex" -> score
+
+function buildForm(){
+  const container = document.getElementById('quizForm');
+  PILLARS.forEach(pillar => {
+    const section = document.createElement('section');
+    section.className = 'pillar';
+    section.id = pillar.id;
+    section.style.setProperty('--pillar-color', COLOR_HEX[pillar.color]);
+    section.style.setProperty('--pillar-bg', COLOR_BG[pillar.color]);
+
+    let qHtml = '';
+    pillar.questions.forEach((q, qi) => {
+      const name = `${pillar.id}-q${qi}`;
+      let optsHtml = '';
+      q.options.forEach((opt, oi) => {
+        optsHtml += `
+          <label class="option">
+            <input type="radio" name="${name}" value="${opt.s}" data-pillar="${pillar.id}" data-q="${qi}">
+            <span class="dot"></span>
+            <span>${opt.t}</span>
+          </label>`;
+      });
+      qHtml += `
+        <div class="question">
+          <div class="q-row">
+            <div class="q-text">${q.text}</div>
+            <div class="q-tag">${q.tag}</div>
+          </div>
+          <div class="options">${optsHtml}</div>
+        </div>`;
+    });
+
+    section.innerHTML = `
+      <div class="pillar-head">
+        <div class="pillar-title">${pillar.title}</div>
+        <div class="pillar-sub">${pillar.sub}</div>
+      </div>
+      ${qHtml}
+    `;
+    container.appendChild(section);
+  });
+}
+buildForm();
+
+function updateProgress(){
+  const answered = Object.keys(answers).length;
+  document.getElementById('progressFill').style.width = (answered/TOTAL_QUESTIONS*100) + '%';
+  document.getElementById('progressCount').textContent = `${answered} / ${TOTAL_QUESTIONS}`;
+  
+  const hint = document.getElementById('submitHint');
+  const form = document.getElementById('userDetailsForm');
+  
+  if(answered === TOTAL_QUESTIONS){
+    hint.style.display = 'none';
+    form.style.display = 'block';
+  } else {
+    hint.style.display = 'block';
+    form.style.display = 'none';
+    hint.textContent = `answer all ${TOTAL_QUESTIONS} questions to unlock your score (${TOTAL_QUESTIONS - answered} left)`;
+  }
+}
+
+document.getElementById('quizForm').addEventListener('change', (e) => {
+  if(e.target.type === 'radio'){
+    const key = `${e.target.dataset.pillar}-q${e.target.dataset.q}`;
+    answers[key] = parseFloat(e.target.value);
+    updateProgress();
+  }
+});
+
+function scoreBandText(pct){
+  if(pct >= 85) return { label: 'Scale-ready', text: 'Support is systemized, documented, and measured. This is a strength, not a risk, as you grow.' };
+  if(pct >= 65) return { label: 'Mostly ready', text: 'The foundations are there, but a few gaps will get expensive once volume increases.' };
+  if(pct >= 40) return { label: 'At risk', text: 'Support is running on effort, not systems. Growth will strain this faster than expected.' };
+  return { label: 'Fragile', text: 'Support is largely undocumented and unmeasured — a single busy week could break it.' };
+}
+
+function computeResults(){
+  const pillarResults = PILLARS.map(pillar => {
+    let sum = 0;
+    pillar.questions.forEach((q, qi) => { sum += answers[`${pillar.id}-q${qi}`] || 0; });
+    const max = pillar.questions.length;
+    return { id: pillar.id, title: pillar.title, color: pillar.color, sum, max, pct: sum/max*100 };
+  });
+  const totalSum = pillarResults.reduce((n,p)=>n+p.sum,0);
+  const overallPct = totalSum / TOTAL_QUESTIONS * 100;
+  return { pillarResults, overallPct };
+}
+
+function renderRadar(pillarResults){
+  const size = 320, center = size/2, maxR = 118;
+  const angleStep = (Math.PI*2)/pillarResults.length;
+  const points = pillarResults.map((p, i) => {
+    const angle = -Math.PI/2 + i*angleStep;
+    const r = (p.pct/100) * maxR;
+    return [center + r*Math.cos(angle), center + r*Math.sin(angle)];
+  });
+  const gridLevels = [0.25,0.5,0.75,1];
+  let gridPolys = '';
+  gridLevels.forEach(lvl => {
+    const pts = pillarResults.map((_, i) => {
+      const angle = -Math.PI/2 + i*angleStep;
+      const r = lvl*maxR;
+      return `${center + r*Math.cos(angle)},${center + r*Math.sin(angle)}`;
+    }).join(' ');
+    gridPolys += `<polygon points="${pts}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+  });
+  let axisLines = '';
+  let labels = '';
+  pillarResults.forEach((p, i) => {
+    const angle = -Math.PI/2 + i*angleStep;
+    const x2 = center + maxR*Math.cos(angle), y2 = center + maxR*Math.sin(angle);
+    axisLines += `<line x1="${center}" y1="${center}" x2="${x2}" y2="${y2}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+    const lx = center + (maxR+26)*Math.cos(angle), ly = center + (maxR+26)*Math.sin(angle);
+    labels += `<circle cx="${lx}" cy="${ly}" r="4" fill="${COLOR_HEX[p.color]}"/>`;
+  });
+  const dataPts = points.map(pt => pt.join(',')).join(' ');
+
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      ${gridPolys}
+      ${axisLines}
+      <polygon points="${dataPts}" fill="rgba(91,147,224,0.18)" stroke="#5B93E0" stroke-width="2"/>
+      ${points.map(pt=>`<circle cx="${pt[0]}" cy="${pt[1]}" r="4" fill="#5B93E0"/>`).join('')}
+      ${labels}
+    </svg>
+  `;
+}
+
+function renderResults(){
+  const { pillarResults, overallPct } = computeResults();
+  const rounded = Math.round(overallPct);
+  document.getElementById('overallScore').textContent = rounded + '%';
+  const band = scoreBandText(overallPct);
+  document.getElementById('scoreBand').innerHTML = `<strong style="color:var(--text)">${band.label}.</strong> ${band.text}`;
+
+  document.getElementById('radarWrap').innerHTML = renderRadar(pillarResults);
+
+  const barsHtml = pillarResults.map(p => `
+    <div class="pbar-row">
+      <div class="pbar-top">
+        <span class="pbar-name">${p.title}</span>
+        <span class="pbar-score">${p.sum.toFixed(2)} / ${p.max}.00 · ${Math.round(p.pct)}%</span>
+      </div>
+      <div class="pbar-track"><div class="pbar-fill" style="width:${p.pct}%; background:${COLOR_HEX[p.color]}"></div></div>
+    </div>
+  `).join('');
+  document.getElementById('pillarBars').innerHTML = barsHtml;
+
+  const order = [...pillarResults].sort((a,b)=>a.pct-b.pct);
+  const guidanceHtml = order.map(p => {
+    const status = guidanceStatus(p.pct);
+    const tips = PILLAR_GUIDANCE[p.id].map(g => `
+      <div class="tip"><strong>${g.h}.</strong> ${g.t}</div>
+    `).join('');
+    return `
+      <div class="guidance-card">
+        <div class="guidance-head">
+          <span class="guidance-title" style="color:${COLOR_HEX[p.color]}">${p.title}</span>
+          <span class="status-tag ${status.cls}">${status.label} · ${Math.round(p.pct)}%</span>
+        </div>
+        ${tips}
+      </div>`;
+  }).join('');
+  document.getElementById('focusList').innerHTML = guidanceHtml;
+
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  const quizSection = document.getElementById('quizSection');
+  quizSection.classList.add('visible');
+  quizSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const name = document.getElementById('userName').value.trim();
+  const email = document.getElementById('userEmail').value.trim();
+  const company = document.getElementById('userCompany').value.trim();
+  const errorMsg = document.getElementById('submitError');
+  const btn = document.getElementById('submitBtn');
+
+  if (!name || !email) {
+    errorMsg.textContent = 'Please provide your name and email.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  errorMsg.style.display = 'none';
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  try {
+    const { pillarResults, overallPct } = computeResults();
+    
+    // Determine areas to improve (lowest scoring pillars)
+    const order = [...pillarResults].sort((a,b)=>a.pct-b.pct);
+    const areasToImprove = order.slice(0, 2).map(p => p.title); // Bottom 2 pillars
+
+    const response = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        company,
+        overallScore: overallPct,
+        areasToImprove
+      })
+    });
+
+    if (!response.ok) throw new Error('Failed to save data');
+
+    btn.textContent = 'Generate my readiness score';
+    btn.disabled = false;
+    renderResults();
+  } catch (err) {
+    errorMsg.textContent = 'An error occurred while saving your results. Please try again.';
+    errorMsg.style.display = 'block';
+    btn.textContent = 'Generate my readiness score';
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('restartBtn').addEventListener('click', () => {
+  document.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
+  Object.keys(answers).forEach(k => delete answers[k]);
+  document.getElementById('userName').value = '';
+  document.getElementById('userEmail').value = '';
+  document.getElementById('userCompany').value = '';
+  document.getElementById('submitError').style.display = 'none';
+  updateProgress();
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('quizSection').classList.remove('visible');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+updateProgress();
+</script>
+</body>
+</html>

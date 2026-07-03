@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard - Quiz Attendees</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .admin-wrap { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+  th, td { padding: 16px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface-raised); font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); text-transform: uppercase; }
+  tr:last-child td { border-bottom: none; }
+  .score { font-weight: 600; color: var(--p5); }
+  .areas { font-size: 13px; color: var(--text-muted); }
+  .areas ul { margin-left: 16px; margin-top: 4px; }
+  .no-data { text-align: center; padding: 40px; color: var(--text-faint); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <span class="topbar-title">Admin Dashboard</span>
+  </div>
+</div>
+
+<div class="admin-wrap">
+  <h1>Quiz Attendees</h1>
+  <p style="color: var(--text-muted); margin-bottom: 20px;">List of users who have completed the Support Readiness Scan.</p>
+  
+  <div id="tableContainer">
+    <div class="no-data">Loading...</div>
+  </div>
+</div>
+
+<script>
+async function loadAttendees() {
+  const container = document.getElementById('tableContainer');
+  try {
+    const res = await fetch('/api/attendees');
+    if (!res.ok) throw new Error('Failed to fetch data');
+    const data = await res.json();
+    
+    if (data.length === 0) {
+      container.innerHTML = '<div class="no-data">No attendees found.</div>';
+      return;
+    }
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Company</th>
+            <th>Score</th>
+            <th>Areas to Improve</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.forEach(row => {
+      const date = new Date(row.created_at).toLocaleString();
+      const score = Math.round(row.overall_score) + '%';
+      
+      let areasHtml = '';
+      if (row.areas_to_improve && row.areas_to_improve.length > 0) {
+        areasHtml = '<ul>' + row.areas_to_improve.map(a => `<li>${a}</li>`).join('') + '</ul>';
+      }
+
+      html += `
+        <tr>
+          <td style="font-size: 13px; color: var(--text-faint);">${date}</td>
+          <td style="font-weight: 500;">${row.name}</td>
+          <td>${row.email}</td>
+          <td>${row.company || '-'}</td>
+          <td class="score">${score}</td>
+          <td class="areas">${areasHtml}</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = '<div class="no-data" style="color: #ff6b6b;">Error loading data. Make sure the backend is running.</div>';
+    console.error(err);
+  }
+}
+
+loadAttendees();
+</script>
+</body>
+</html>

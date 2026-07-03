@@ -549,10 +549,52 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     const order = [...pillarResults].sort((a,b)=>a.pct-b.pct);
     const areasToImprove = order.slice(0, 2).map(p => p.title);
 
+    // Build full answer log: one entry per question
+    const questionAnswers = [];
+    PILLARS.forEach(pillar => {
+      pillar.questions.forEach((q, qi) => {
+        const key = `${pillar.id}-q${qi}`;
+        const score = answers[key] || 0;
+        const selectedOption = q.options.find(o => o.s === score);
+        questionAnswers.push({
+          pillarId:       pillar.id,
+          pillarTitle:    pillar.title,
+          questionIndex:  qi + 1,
+          questionText:   q.text,
+          tag:            q.tag,
+          selectedAnswer: selectedOption ? selectedOption.t : '',
+          score
+        });
+      });
+    });
+
+    // Build pillar breakdown
+    const pillarBreakdown = pillarResults.map(p => ({
+      pillarId:   p.id,
+      title:      p.title,
+      score:      parseFloat(p.sum.toFixed(2)),
+      maxScore:   p.max,
+      percentage: parseFloat(p.pct.toFixed(1))
+    }));
+
+    const scoreBand = (() => {
+      if (overallPct >= 85) return 'Scale-ready';
+      if (overallPct >= 65) return 'Mostly ready';
+      if (overallPct >= 40) return 'At risk';
+      return 'Fragile';
+    })();
+
     const res = await fetch('/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone, linkedIn, company, overallScore: overallPct, areasToImprove })
+      body: JSON.stringify({
+        name, email, phone, linkedIn, company,
+        overallScore: overallPct,
+        scoreBand,
+        areasToImprove,
+        pillarBreakdown,
+        questionAnswers
+      })
     });
     if (!res.ok) throw new Error('Failed to save');
 

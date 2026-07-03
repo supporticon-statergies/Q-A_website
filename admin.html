@@ -7,20 +7,40 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  .admin-wrap { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+  .admin-wrap { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
   .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
-  th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
-  th { background: var(--surface-raised); font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+  th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; }
+  th { background: var(--surface-raised); font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,0.02); }
-  .score { font-weight: 600; color: var(--p5); font-family: var(--font-mono); }
-  .areas { font-size: 13px; color: var(--text-muted); }
-  .areas ul { margin: 4px 0 0 16px; padding: 0; }
+  .score-badge { font-weight: 600; color: var(--p5); font-family: var(--font-mono); font-size: 15px; }
+  .band { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .areas ul { margin: 4px 0 0 16px; padding: 0; font-size: 13px; color: var(--text-muted); }
   .linkedin-link { color: var(--p5); text-decoration: none; font-size: 13px; }
   .linkedin-link:hover { text-decoration: underline; }
   .no-data { text-align: center; padding: 60px 20px; color: var(--text-faint); font-family: var(--font-mono); }
   .faint { color: var(--text-faint); }
+
+  /* Expandable report */
+  .expand-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; padding: 4px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+  .expand-btn:hover { background: var(--surface-raised); color: var(--text); }
+  .report-row td { padding: 0; background: var(--surface-raised); }
+  .report-inner { padding: 20px 24px; display: none; }
+  .report-inner.open { display: block; }
+  .pillar-section { margin-bottom: 20px; }
+  .pillar-label { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .pillar-pct { font-weight: 600; color: var(--text); }
+  .pbar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 12px; }
+  .pbar-fill { height: 4px; border-radius: 2px; }
+  .q-list { display: grid; gap: 6px; }
+  .q-item { background: var(--surface); border-radius: 6px; padding: 10px 14px; font-size: 13px; }
+  .q-text { color: var(--text-muted); margin-bottom: 4px; }
+  .q-answer { color: var(--text); font-weight: 500; }
+  .q-score { font-family: var(--font-mono); font-size: 11px; float: right; }
+  .score-1   { color: #46B897; }
+  .score-075 { color: #8B85F2; }
+  .score-05  { color: #E8B94A; }
+  .score-025 { color: #E2673E; }
 </style>
 </head>
 <body>
@@ -43,6 +63,59 @@
 </div>
 
 <script>
+const PILLAR_COLORS = { pillar1:'#8B85F2', pillar2:'#46B897', pillar3:'#E2673E', pillar4:'#E8B94A', pillar5:'#5B93E0' };
+
+function scoreClass(s) {
+  if (s >= 1)    return 'score-1';
+  if (s >= 0.75) return 'score-075';
+  if (s >= 0.5)  return 'score-05';
+  return 'score-025';
+}
+
+function buildReport(sub) {
+  const pillars = {};
+  (sub.questionAnswers || []).forEach(q => {
+    if (!pillars[q.pillarId]) pillars[q.pillarId] = { title: q.pillarTitle, questions: [] };
+    pillars[q.pillarId].questions.push(q);
+  });
+
+  const breakdown = {};
+  (sub.pillarBreakdown || []).forEach(p => { breakdown[p.pillarId] = p; });
+
+  let html = '';
+  Object.entries(pillars).forEach(([pid, pillar]) => {
+    const color = PILLAR_COLORS[pid] || '#fff';
+    const pct   = breakdown[pid] ? breakdown[pid].percentage : 0;
+    html += `
+      <div class="pillar-section">
+        <div class="pillar-label" style="color:${color}">
+          ${pillar.title}
+          <span class="pillar-pct" style="color:${color}">${pct}%</span>
+        </div>
+        <div class="pbar"><div class="pbar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="q-list">
+          ${pillar.questions.map(q => `
+            <div class="q-item">
+              <div class="q-text">
+                Q${q.questionIndex} · ${q.tag} — ${q.questionText}
+                <span class="q-score ${scoreClass(q.score)}">${q.score * 100}%</span>
+              </div>
+              <div class="q-answer">↳ ${q.selectedAnswer}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  });
+  return html || '<p class="faint">No detailed answers recorded.</p>';
+}
+
+function toggleReport(id) {
+  const el = document.getElementById(`report-${id}`);
+  const btn = document.getElementById(`btn-${id}`);
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? 'Hide report ▲' : 'Full report ▼';
+}
+
 async function loadAttendees() {
   const container = document.getElementById('tableContainer');
   const subCount  = document.getElementById('subCount');
@@ -63,22 +136,17 @@ async function loadAttendees() {
       <table>
         <thead>
           <tr>
-            <th>#</th>
-            <th>Date</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>LinkedIn</th>
-            <th>Company</th>
-            <th>Score</th>
-            <th>Areas to Improve</th>
+            <th>#</th><th>Date</th><th>Name</th><th>Email</th>
+            <th>Phone</th><th>LinkedIn</th><th>Company</th>
+            <th>Score</th><th>Areas to Improve</th><th></th>
           </tr>
         </thead>
         <tbody>
     `;
 
     data.forEach((row, i) => {
-      const date = new Date(row.createdAt).toLocaleString();
+      const id    = row._id;
+      const date  = new Date(row.createdAt).toLocaleString();
       const score = Math.round(row.overallScore) + '%';
 
       const linkedInHtml = row.linkedIn
@@ -98,8 +166,19 @@ async function loadAttendees() {
           <td style="white-space:nowrap;">${row.phone || '<span class="faint">—</span>'}</td>
           <td>${linkedInHtml}</td>
           <td>${row.company || '<span class="faint">—</span>'}</td>
-          <td class="score">${score}</td>
+          <td>
+            <div class="score-badge">${score}</div>
+            <div class="band">${row.scoreBand || ''}</div>
+          </td>
           <td class="areas">${areasHtml}</td>
+          <td><button class="expand-btn" id="btn-${id}" onclick="toggleReport('${id}')">Full report ▼</button></td>
+        </tr>
+        <tr class="report-row">
+          <td colspan="10">
+            <div class="report-inner" id="report-${id}">
+              ${buildReport(row)}
+            </div>
+          </td>
         </tr>
       `;
     });

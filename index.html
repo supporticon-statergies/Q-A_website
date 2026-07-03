@@ -93,11 +93,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="config.js"></script>
 <script>
-const GITHUB_TOKEN = "";       // Replace: GitHub Personal Access Token
-const GITHUB_OWNER = "supporticon-statergies";  // Replace: your GitHub username
-const GITHUB_REPO  = "Q-A_website";        // Replace: your repository name
-const FILE_PATH    = "data/submissions.xlsx"; // Path inside repo where Excel is stored
 
 async function appendToExcel(rowData) {
   const apiUrl  = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILE_PATH}`;

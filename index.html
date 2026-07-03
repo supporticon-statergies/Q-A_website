@@ -534,11 +534,33 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const errorMsg = document.getElementById('submitError');
   const btn = document.getElementById('submitBtn');
 
-  if (!name || !email) {
-    errorMsg.textContent = 'Please provide your name and email.';
+  // ── Validation ──────────────────────────────────────────────────────────────
+  const emailRegex    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const phoneRegex    = /^[\+]?[\d\s\-\(\)]{7,15}$/;
+  const linkedInRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub|company|school)\/[A-Za-z0-9\-_%]+\/?$/i;
+
+  const fields = ['userName','userEmail','userPhone','userLinkedIn'];
+  fields.forEach(id => document.getElementById(id).classList.remove('invalid'));
+
+  function fail(fieldId, msg) {
+    errorMsg.textContent = msg;
     errorMsg.style.display = 'block';
-    return;
+    const el = document.getElementById(fieldId);
+    el.classList.add('invalid');
+    el.focus();
   }
+
+  if (!name) return fail('userName', 'Please enter your name.');
+  if (name.length < 2 || !/^[A-Za-z\s'\-\.]+$/.test(name))
+    return fail('userName', 'Name should contain letters only (no numbers or symbols).');
+  if (!email) return fail('userEmail', 'Please enter your work email.');
+  if (!emailRegex.test(email))
+    return fail('userEmail', 'Please enter a valid email address — e.g. you@company.com');
+  if (phone && !phoneRegex.test(phone))
+    return fail('userPhone', 'Please enter a valid phone number — e.g. +91 98765 43210');
+  if (linkedIn && !linkedInRegex.test(linkedIn))
+    return fail('userLinkedIn', 'Please enter a valid LinkedIn URL — e.g. https://linkedin.com/in/yourname');
+  // ── End validation ──────────────────────────────────────────────────────────
 
   errorMsg.style.display = 'none';
   btn.textContent = 'Saving...';
@@ -625,6 +647,14 @@ document.getElementById('restartBtn').addEventListener('click', () => {
 });
 
 updateProgress();
+
+// Clear invalid highlight as user types
+['userName','userEmail','userPhone','userLinkedIn'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    this.classList.remove('invalid');
+    document.getElementById('submitError').style.display = 'none';
+  });
+});
 </script>
 </body>
 </html>

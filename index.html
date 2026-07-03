@@ -92,65 +92,7 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="config.js"></script>
 <script>
-
-async function appendToExcel(rowData) {
-  const apiUrl  = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILE_PATH}`;
-  const headers = {
-    Authorization: `token ${GITHUB_TOKEN}`,
-    Accept: "application/vnd.github.v3+json",
-    "Content-Type": "application/json"
-  };
-
-  let sha = null;
-  let wb, ws;
-
-  // Try loading existing file
-  try {
-    const res = await fetch(apiUrl, { headers });
-    if (res.ok) {
-      const file = await res.json();
-      sha = file.sha;
-      const raw = atob(file.content.replace(/\n/g, ""));
-      const bytes = new Uint8Array(raw.length);
-      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-      wb = XLSX.read(bytes, { type: "array" });
-      ws = wb.Sheets[wb.SheetNames[0]];
-    } else { throw new Error("not found"); }
-  } catch {
-    // First submission — create workbook with header row
-    wb = XLSX.utils.book_new();
-    ws = XLSX.utils.aoa_to_sheet([[
-      "Date", "Name", "Email", "Phone", "LinkedIn", "Company", "Score (%)", "Areas to Improve"
-    ]]);
-    XLSX.utils.book_append_sheet(wb, ws, "Submissions");
-  }
-
-  // Append new row
-  XLSX.utils.sheet_add_aoa(ws, [[
-    new Date().toLocaleString(),
-    rowData.name,
-    rowData.email,
-    rowData.phone,
-    rowData.linkedIn,
-    rowData.company,
-    Math.round(rowData.overallScore),
-    rowData.areasToImprove.join(", ")
-  ]], { origin: -1 });
-
-  // Encode to base64
-  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  let binary = "";
-  for (let i = 0; i < out.length; i++) binary += String.fromCharCode(out[i]);
-  const content = btoa(binary);
-
-  // Write back to GitHub
-  const body = { message: `Add submission from ${rowData.name}`, content, ...(sha && { sha }) };
-  const put = await fetch(apiUrl, { method: "PUT", headers, body: JSON.stringify(body) });
-  if (!put.ok) { const e = await put.json(); throw new Error(e.message || "GitHub write failed"); }
-}
 const PILLARS = [
   {
     id: 'pillar1', color: 'p1',
@@ -607,7 +549,12 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     const order = [...pillarResults].sort((a,b)=>a.pct-b.pct);
     const areasToImprove = order.slice(0, 2).map(p => p.title);
 
-    await appendToExcel({ name, email, phone, linkedIn, company, overallScore: overallPct, areasToImprove });
+    const res = await fetch('/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone, linkedIn, company, overallScore: overallPct, areasToImprove })
+    });
+    if (!res.ok) throw new Error('Failed to save');
 
     btn.textContent = 'Generate my readiness score';
     btn.disabled = false;

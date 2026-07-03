@@ -1,0 +1,32 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Inject secrets into HTML files
+        env:
+          GH_PAT:   ${{ secrets.GH_PAT }}
+          GH_OWNER: ${{ github.repository_owner }}
+          GH_REPO:  ${{ github.event.repository.name }}
+        run: |
+          sed -i "s|YOUR_GITHUB_PAT|${GH_PAT}|g"          Q-A_website/index.html Q-A_website/admin.html
+          sed -i "s|YOUR_GITHUB_USERNAME|${GH_OWNER}|g"   Q-A_website/index.html Q-A_website/admin.html
+          sed -i "s|YOUR_REPO_NAME|${GH_REPO}|g"          Q-A_website/index.html Q-A_website/admin.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir:  Q-A_website

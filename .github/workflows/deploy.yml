@@ -13,17 +13,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Inject secrets into HTML files
-        env:
-          GH_PAT:   ${{ secrets.GH_PAT }}
-          GH_OWNER: ${{ github.repository_owner }}
-          GH_REPO:  ${{ github.event.repository.name }}
+      - name: Create config file from secrets
         run: |
-          sed -i "s|YOUR_GITHUB_PAT|${GH_PAT}|g"          index.html admin.html
-          sed -i "s|YOUR_GITHUB_USERNAME|${GH_OWNER}|g"   index.html admin.html
-          sed -i "s|YOUR_REPO_NAME|${GH_REPO}|g"          index.html admin.html
+          cat > config.js << EOF
+          const GITHUB_TOKEN = "${{ secrets.GH_PAT }}";
+          const GITHUB_OWNER = "${{ github.repository_owner }}";
+          const GITHUB_REPO  = "${{ github.event.repository.name }}";
+          const FILE_PATH    = "data/submissions.xlsx";
+          EOF
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

@@ -3,9 +3,11 @@ import time
 import boto3
 from decimal import Decimal
 
+# DynamoDB
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table("Q-A_website")
 
+# Common Headers
 headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -13,23 +15,36 @@ headers = {
     "Content-Type": "application/json"
 }
 
+
 def lambda_handler(event, context):
+
+    print(json.dumps(event))
 
     method = event["requestContext"]["http"]["method"]
     path = event["rawPath"]
 
+    print("METHOD:", method)
+    print("PATH:", path)
+
+    # Handle CORS Preflight
+    if method == "OPTIONS":
+        return {
+            "statusCode": 200,
+            "headers": headers,
+            "body": ""
+        }
+
+    # POST /submit
     if method == "POST" and path == "/submit":
         return submit(event)
 
+    # GET /attendees
     if method == "GET" and path == "/attendees":
         return attendees()
 
     return {
         "statusCode": 404,
-        "headers": {
-            "Access-Control-Allow-Origin": "*",
-            "Content-Type": "application/json"
-        },
+        "headers": headers,
         "body": json.dumps({
             "message": "Route not found"
         })
@@ -39,6 +54,7 @@ def lambda_handler(event, context):
 def submit(event):
 
     try:
+
         body = json.loads(event["body"])
 
         name = body.get("name")
@@ -50,9 +66,7 @@ def submit(event):
         if not name or not email:
             return {
                 "statusCode": 400,
-                "headers": {
-                    "Access-Control-Allow-Origin": "*"
-                },
+                "headers": headers,
                 "body": json.dumps({
                     "message": "Name and Email are required"
                 })
@@ -71,9 +85,7 @@ def submit(event):
 
         return {
             "statusCode": 201,
-            "headers": {
-                "Access-Control-Allow-Origin": "*"
-            },
+            "headers": headers,
             "body": json.dumps({
                 "message": "Saved Successfully"
             })
@@ -83,9 +95,7 @@ def submit(event):
 
         return {
             "statusCode": 500,
-            "headers": {
-                "Access-Control-Allow-Origin": "*"
-            },
+            "headers": headers,
             "body": json.dumps({
                 "error": str(e)
             })
@@ -108,14 +118,11 @@ def attendees():
         def decimal_default(obj):
             if isinstance(obj, Decimal):
                 return float(obj)
-            raise TypeError
+            return obj
 
         return {
             "statusCode": 200,
-            "headers": {
-                "Access-Control-Allow-Origin": "*",
-                "Content-Type": "application/json"
-            },
+            "headers": headers,
             "body": json.dumps(
                 items,
                 default=decimal_default
@@ -124,10 +131,10 @@ def attendees():
 
     except Exception as e:
 
-      return {
-    "statusCode": 201,
-    "headers": headers,
-    "body": json.dumps({
-        "message": "Saved Successfully"
-    })
-}
+        return {
+            "statusCode": 500,
+            "headers": headers,
+            "body": json.dumps({
+                "error": str(e)
+            })
+        }

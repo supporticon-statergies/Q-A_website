@@ -59,15 +59,26 @@ function isValidWorkEmail(email) {
 
   const domain = email.split('@')[1]?.toLowerCase();
   const allowedDomains = ['company.com'];
-  const blockedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com'];
+  const blockedDomains = [
+    'gmail.com', 'yahoo.com', 'yahoo.co.in', 'hotmail.com', 'outlook.com', 'live.com',
+    'msn.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'proton.me', 'protonmail.com',
+    'zoho.com', 'yandex.com', 'rediffmail.com', 'mail.com', 'gmx.com'
+  ];
 
   return !!domain && !blockedDomains.includes(domain) && allowedDomains.includes(domain);
 }
 
 function isValidPhoneNumber(phone) {
-  if (!phone) return true;
-  const digits = phone.replace(/\D/g, '');
-  return digits.length >= 10 && digits.length <= 15;
+  if (!phone) return false;
+  const cleanPhone = phone.replace(/[\s()\-]/g, '');
+  const phoneRegex = /^\+?[1-9]\d{7,14}$/;
+  return phoneRegex.test(cleanPhone);
+}
+
+function isValidLinkedIn(linkedIn) {
+  if (!linkedIn) return true;
+  const linkedInRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub|company|school)\/[A-Za-z0-9\-_%]+\/?$/i;
+  return linkedInRegex.test(linkedIn);
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -81,9 +92,18 @@ app.post('/submit', async (req, res) => {
       pillarBreakdown, questionAnswers
     } = req.body;
 
-    if (!name || !email) return res.status(400).json({ error: 'Name and email are required' });
-    if (!isValidWorkEmail(email)) return res.status(400).json({ error: 'Please use your company email address ending in company.com.' });
-    if (phone && !isValidPhoneNumber(phone)) return res.status(400).json({ error: 'Please enter a valid mobile number.' });
+    if (!name || !email || !company || !phone) {
+      return res.status(400).json({ error: 'Name, email, company, and phone are required.' });
+    }
+    if (!isValidWorkEmail(email)) {
+      return res.status(400).json({ error: 'Please use your company email address. Personal email providers are blocked.' });
+    }
+    if (!isValidPhoneNumber(phone)) {
+      return res.status(400).json({ error: 'Please enter a valid mobile number with country code.' });
+    }
+    if (linkedIn && !isValidLinkedIn(linkedIn)) {
+      return res.status(400).json({ error: 'Please enter a valid LinkedIn URL — e.g. https://linkedin.com/in/yourname.' });
+    }
 
     await Submission.create({
       name, userEmail: email, phone, linkedIn, company,

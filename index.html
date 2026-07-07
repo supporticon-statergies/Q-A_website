@@ -49,11 +49,11 @@
         </div>
         <div class="form-group">
           <label for="userCompany">Company Name</label>
-          <input type="text" id="userCompany" placeholder="Company Name">
+          <input type="text" id="userCompany" placeholder="Company Name" required>
         </div>
         <div class="form-group">
           <label for="userPhone">Phone Number</label>
-          <input type="tel" id="userPhone" placeholder="+1 234 567 8900">
+          <input type="tel" id="userPhone" placeholder="+91 9876543210" required>
         </div>
         <div class="form-group">
           <label for="userLinkedIn">LinkedIn Profile URL</label>
@@ -538,14 +538,20 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const emailRegex    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
   const linkedInRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub|company|school)\/[A-Za-z0-9\-_%]+\/?$/i;
   const allowedEmailDomains = ['company.com'];
-  const blockedEmailDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com'];
+  const blockedEmailDomains = [
+    'gmail.com', 'yahoo.com', 'yahoo.co.in', 'hotmail.com', 'outlook.com', 'live.com',
+    'msn.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'proton.me', 'protonmail.com',
+    'zoho.com', 'yandex.com', 'rediffmail.com', 'mail.com', 'gmx.com'
+  ];
+  const phoneRegex = /^\+?[1-9]\d{7,14}$/;
 
   function isValidPhoneNumber(value) {
-    const digits = value.replace(/\D/g, '');
-    return digits.length >= 10 && digits.length <= 15;
+    const cleanPhone = value.replace(/[\s()\-]/g, '');
+    if (!cleanPhone) return false;
+    return phoneRegex.test(cleanPhone);
   }
 
-  const fields = ['userName','userEmail','userPhone','userLinkedIn'];
+  const fields = ['userName','userEmail','userCompany','userPhone','userLinkedIn'];
   fields.forEach(id => document.getElementById(id).classList.remove('invalid'));
 
   function fail(fieldId, msg) {
@@ -561,14 +567,26 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     return fail('userName', 'Name should contain letters only (no numbers or symbols).');
   if (!email) return fail('userEmail', 'Please enter your work email.');
   if (!emailRegex.test(email))
-    return fail('userEmail', 'Please enter a valid email address — e.g. you@company.com');
+    return fail('userEmail', 'Please enter a valid company email address.');
 
   const emailDomain = email.split('@')[1]?.toLowerCase();
-  if (!emailDomain || blockedEmailDomains.includes(emailDomain) || !allowedEmailDomains.includes(emailDomain))
+  if (!emailDomain)
+    return fail('userEmail', 'Please enter a valid company email address.');
+  if (blockedEmailDomains.includes(emailDomain))
+    return fail(
+      'userEmail',
+      'Please use your company email address. Personal email addresses like Gmail or Yahoo are not allowed.'
+    );
+  if (!allowedEmailDomains.includes(emailDomain))
     return fail('userEmail', 'Please use your company email address ending in company.com.');
 
-  if (phone && !isValidPhoneNumber(phone))
-    return fail('userPhone', 'Please enter a valid mobile number with 10–15 digits.');
+  if (!company) return fail('userCompany', 'Please enter your company name.');
+  if (!phone) return fail('userPhone', 'Please enter your mobile number.');
+  if (!isValidPhoneNumber(phone))
+    return fail(
+      'userPhone',
+      'Please enter a valid mobile number with country code (Example: +919876543210).'
+    );
   if (linkedIn && !linkedInRegex.test(linkedIn))
     return fail('userLinkedIn', 'Please enter a valid LinkedIn URL — e.g. https://linkedin.com/in/yourname');
   // ── End validation ──────────────────────────────────────────────────────────

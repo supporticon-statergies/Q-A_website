@@ -58,14 +58,13 @@ function isValidWorkEmail(email) {
   if (!emailRegex.test(email)) return false;
 
   const domain = email.split('@')[1]?.toLowerCase();
-  const allowedDomains = ['company.com'];
   const blockedDomains = [
     'gmail.com', 'yahoo.com', 'yahoo.co.in', 'hotmail.com', 'outlook.com', 'live.com',
     'msn.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'proton.me', 'protonmail.com',
     'zoho.com', 'yandex.com', 'rediffmail.com', 'mail.com', 'gmx.com'
   ];
 
-  return !!domain && !blockedDomains.includes(domain) && allowedDomains.includes(domain);
+  return !!domain && !blockedDomains.includes(domain) && domain === 'company.com';
 }
 
 function isValidPhoneNumber(phone) {

@@ -40,20 +40,20 @@
       <div id="userDetailsForm" class="user-details-form" style="display: none;">
         <h3>Almost there! Tell us who you are to see your results.</h3>
         <div class="form-group">
-          <label for="userName">Name</label>
-          <input type="text" id="userName" placeholder="Your Name" required>
+          <label for="userName">Name <span class="required-mark">*</span></label>
+          <input type="text" id="userName" placeholder="Your Name" required autocomplete="name">
         </div>
         <div class="form-group">
-          <label for="userEmail">Work Email</label>
-          <input type="email" id="userEmail" placeholder="you@company.com" required>
+          <label for="userEmail">Work Email <span class="required-mark">*</span></label>
+          <input type="email" id="userEmail" placeholder="you@company.com" required autocomplete="email">
         </div>
         <div class="form-group">
-          <label for="userCompany">Company Name</label>
-          <input type="text" id="userCompany" placeholder="Company Name" required>
+          <label for="userCompany">Company Name <span class="required-mark">*</span></label>
+          <input type="text" id="userCompany" placeholder="Company Name" required autocomplete="organization">
         </div>
         <div class="form-group">
-          <label for="userPhone">Phone Number</label>
-          <input type="tel" id="userPhone" placeholder="+91 9876543210" required>
+          <label for="userPhone">Phone Number <span class="required-mark">*</span></label>
+          <input type="tel" id="userPhone" placeholder="+91 9876543210" required autocomplete="tel" inputmode="tel">
         </div>
         <div class="form-group">
           <label for="userLinkedIn">LinkedIn Profile URL</label>
@@ -537,7 +537,6 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   // ── Validation ──────────────────────────────────────────────────────────────
   const emailRegex    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
   const linkedInRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub|company|school)\/[A-Za-z0-9\-_%]+\/?$/i;
-  const allowedEmailDomains = ['company.com'];
   const blockedEmailDomains = [
     'gmail.com', 'yahoo.com', 'yahoo.co.in', 'hotmail.com', 'outlook.com', 'live.com',
     'msn.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'proton.me', 'protonmail.com',
@@ -549,6 +548,16 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     const cleanPhone = value.replace(/[\s()\-]/g, '');
     if (!cleanPhone) return false;
     return phoneRegex.test(cleanPhone);
+  }
+
+  function isValidName(value) {
+    return value.length >= 2 && /^[A-Za-z][A-Za-z\s.'-]*$/.test(value);
+  }
+
+  function isValidWorkEmail(value) {
+    if (!emailRegex.test(value)) return false;
+    const emailDomain = value.split('@')[1]?.toLowerCase();
+    return !!emailDomain && !blockedEmailDomains.includes(emailDomain) && emailDomain === 'company.com';
   }
 
   const fields = ['userName','userEmail','userCompany','userPhone','userLinkedIn'];
@@ -563,21 +572,10 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   }
 
   if (!name) return fail('userName', 'Please enter your name.');
-  if (name.length < 2 || !/^[A-Za-z\s'\-\.]+$/.test(name))
-    return fail('userName', 'Name should contain letters only (no numbers or symbols).');
+  if (!isValidName(name))
+    return fail('userName', 'Name should contain letters only and be at least 2 characters long.');
   if (!email) return fail('userEmail', 'Please enter your work email.');
-  if (!emailRegex.test(email))
-    return fail('userEmail', 'Please enter a valid company email address.');
-
-  const emailDomain = email.split('@')[1]?.toLowerCase();
-  if (!emailDomain)
-    return fail('userEmail', 'Please enter a valid company email address.');
-  if (blockedEmailDomains.includes(emailDomain))
-    return fail(
-      'userEmail',
-      'Please use your company email address. Personal email addresses like Gmail or Yahoo are not allowed.'
-    );
-  if (!allowedEmailDomains.includes(emailDomain))
+  if (!isValidWorkEmail(email))
     return fail('userEmail', 'Please use your company email address ending in company.com.');
 
   if (!company) return fail('userCompany', 'Please enter your company name.');
@@ -678,7 +676,7 @@ document.getElementById('restartBtn').addEventListener('click', () => {
 updateProgress();
 
 // Clear invalid highlight as user types
-['userName','userEmail','userPhone','userLinkedIn'].forEach(id => {
+['userName','userEmail','userCompany','userPhone','userLinkedIn'].forEach(id => {
   document.getElementById(id).addEventListener('input', function() {
     this.classList.remove('invalid');
     document.getElementById('submitError').style.display = 'none';

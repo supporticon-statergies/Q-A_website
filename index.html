@@ -535,9 +535,15 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const btn = document.getElementById('submitBtn');
 
   // ── Validation ──────────────────────────────────────────────────────────────
-  const emailRegex    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  const phoneRegex    = /^[\+]?[\d\s\-\(\)]{7,15}$/;
+  const emailRegex    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
   const linkedInRegex = /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub|company|school)\/[A-Za-z0-9\-_%]+\/?$/i;
+  const allowedEmailDomains = ['company.com'];
+  const blockedEmailDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com'];
+
+  function isValidPhoneNumber(value) {
+    const digits = value.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 15;
+  }
 
   const fields = ['userName','userEmail','userPhone','userLinkedIn'];
   fields.forEach(id => document.getElementById(id).classList.remove('invalid'));
@@ -556,8 +562,13 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   if (!email) return fail('userEmail', 'Please enter your work email.');
   if (!emailRegex.test(email))
     return fail('userEmail', 'Please enter a valid email address — e.g. you@company.com');
-  if (phone && !phoneRegex.test(phone))
-    return fail('userPhone', 'Please enter a valid phone number — e.g. +91 98765 43210');
+
+  const emailDomain = email.split('@')[1]?.toLowerCase();
+  if (!emailDomain || blockedEmailDomains.includes(emailDomain) || !allowedEmailDomains.includes(emailDomain))
+    return fail('userEmail', 'Please use your company email address ending in company.com.');
+
+  if (phone && !isValidPhoneNumber(phone))
+    return fail('userPhone', 'Please enter a valid mobile number with 10–15 digits.');
   if (linkedIn && !linkedInRegex.test(linkedIn))
     return fail('userLinkedIn', 'Please enter a valid LinkedIn URL — e.g. https://linkedin.com/in/yourname');
   // ── End validation ──────────────────────────────────────────────────────────

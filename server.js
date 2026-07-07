@@ -53,6 +53,23 @@ const submissionSchema = new mongoose.Schema({
 
 const Submission = mongoose.model('Submission', submissionSchema);
 
+function isValidWorkEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+  if (!emailRegex.test(email)) return false;
+
+  const domain = email.split('@')[1]?.toLowerCase();
+  const allowedDomains = ['company.com'];
+  const blockedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com'];
+
+  return !!domain && !blockedDomains.includes(domain) && allowedDomains.includes(domain);
+}
+
+function isValidPhoneNumber(phone) {
+  if (!phone) return true;
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 15;
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 // POST /submit
@@ -65,6 +82,8 @@ app.post('/submit', async (req, res) => {
     } = req.body;
 
     if (!name || !email) return res.status(400).json({ error: 'Name and email are required' });
+    if (!isValidWorkEmail(email)) return res.status(400).json({ error: 'Please use your company email address ending in company.com.' });
+    if (phone && !isValidPhoneNumber(phone)) return res.status(400).json({ error: 'Please enter a valid mobile number.' });
 
     await Submission.create({
       name, userEmail: email, phone, linkedIn, company,
